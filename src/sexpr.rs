@@ -4,6 +4,7 @@ use std::str::FromStr;
 
 use crate::context::EvalContext;
 use crate::error::{LispError, LispResult};
+use crate::builtins::eval_builtin;
 
 #[derive(Clone)]
 pub enum SExpr {
@@ -108,7 +109,7 @@ impl SExpr {
                 let head = exprs[0].as_ref();
                 if let SExpr::Symbol(s) = head {
                     let args: Vec<&SExpr> = exprs[1..].iter().map(|b| b.as_ref()).collect();
-                    if let Some(results) = eval_builtin(s, args) {
+                    if let Ok(results) = eval_builtin(s, ctx, &args) {
                         return Ok(results);
                     }
 
@@ -160,20 +161,4 @@ impl FromStr for SExpr {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         SExpr::parse(SExpr::lex(s).into_iter()).ok_or("failed to parse SExpr")
     }
-}
-
-pub fn eval_builtin<'a, I: IntoIterator<Item = &'a SExpr>>(name: &str, args: I) -> Option<SExpr> {
-    if name == "+" {
-        let mut register = 0.0;
-        for arg in args.into_iter() {
-            if let SExpr::Num(f) = arg {
-                register += f;
-            } else {
-                return None;
-            }
-        }
-        return Some(SExpr::Num(register));
-    }
-
-    return None;
 }
