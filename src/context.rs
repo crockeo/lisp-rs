@@ -1,4 +1,5 @@
-use crate::error::{LispError, LispResult};
+use crate::error::LispResult;
+use crate::lisp_error;
 use crate::sexpr::SExpr;
 
 pub struct EvalContext {
@@ -18,10 +19,7 @@ impl EvalContext {
             }
         }
 
-        Err(LispError::new(format!(
-            "failed to get value with name '{}'",
-            target_name
-        )))
+        lisp_error!("failed to get value with name '{}'", target_name);
     }
 
     /// set sets the value of the most locally-scoped
@@ -33,10 +31,7 @@ impl EvalContext {
             }
         }
 
-        Err(LispError::new(format!(
-            "failed to set value with name '{}'",
-            target_name,
-        )))
+        lisp_error!("failed to set value with name '{}'", target_name);
     }
 
     /// set_new creates a new binding the the name

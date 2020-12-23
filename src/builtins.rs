@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use crate::context::EvalContext;
 use crate::error::{LispError, LispResult};
+use crate::lisp_error;
 use crate::sexpr::SExpr;
 
 pub type LispBuiltin = dyn Fn(&mut EvalContext, &Vec<&SExpr>) -> LispResult<SExpr> + Sync;
@@ -20,7 +21,7 @@ fn add_impl(_: &mut EvalContext, args: &Vec<&SExpr>) -> LispResult<SExpr> {
         if let SExpr::Num(f) = arg {
             register += f;
         } else {
-            return Err(LispError::new(format!("attempted to add non-number '{}'", arg)));
+            lisp_error!("attempted to add non-number '{}'", arg);
         }
     }
     Ok(SExpr::Num(register))

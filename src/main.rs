@@ -4,6 +4,8 @@ extern crate lazy_static;
 mod builtins;
 mod context;
 mod error;
+#[macro_use]
+mod macro_defs;
 mod sexpr;
 
 use std::io;

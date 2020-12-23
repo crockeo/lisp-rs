@@ -3,7 +3,8 @@ use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 
 use crate::context::EvalContext;
-use crate::error::{LispError, LispResult};
+use crate::error::LispResult;
+use crate::lisp_error;
 use crate::builtins::eval_builtin;
 
 #[derive(Clone)]
@@ -117,16 +118,10 @@ impl SExpr {
                         todo!("run builin funcall on args incl symbol name")
                     }
 
-                    return Err(LispError::new(format!(
-                        "failed to evaluate '{}', unknown builtin or function name",
-                        s,
-                    )));
+                    lisp_error!("failed to evaluate '{}', unknown builtin or function name", s);
                 }
 
-                return Err(LispError::new(format!(
-                    "failed to evaluate list with head '{}'",
-                    head
-                )));
+                lisp_error!("failed to evaluate list with head '{}'", head);
             }
             // for bool, number, and string, we map the value to itself
             x => x,
