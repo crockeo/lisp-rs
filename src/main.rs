@@ -19,46 +19,49 @@ fn main() -> io::Result<()> {
     let mut eval_context = EvalContext::new();
     loop {
         let line = read_line("> ")?;
-        let tokens = SExpr::lex(line.as_str());
-        let mut tokens_iter = tokens.into_iter();
-        while let Some(expr) = SExpr::parse(&mut tokens_iter) {
-            match expr.eval(&mut eval_context) {
-                Err(e) => {
-                    println!("encountered error: {}", e.message());
-                },
-                Ok(result) => println!("{}", result),
+        if let Some(line) = line {
+            let tokens = SExpr::lex(line.as_str());
+            let mut tokens_iter = tokens.into_iter();
+            while let Some(expr) = SExpr::parse(&mut tokens_iter) {
+                match expr.eval(&mut eval_context) {
+                    Err(e) => {
+                        println!("encountered error: {}", e.message());
+                    },
+                    Ok(result) => println!("{}", result),
+                }
             }
-        }
-
-        let result = read_line("> ")?
-            .as_str()
-            .parse::<SExpr>()
-            .map_err(|e| io::Error::new(io::ErrorKind::InvalidInput, e))?
-            .eval(&mut eval_context);
-
-        println!(
-            "{}",
-            result.map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e.message()))?,
-        );
-    }
-}
-
-/// read_line reads a single line of input from the user and returns it as an owned string WITHOUT
-/// newline.
-fn read_line(prompt: &str) -> io::Result<String> {
-    let mut line = String::new();
-    io::stdout().write(prompt.as_bytes())?;
-    io::stdout().flush()?;
-    io::stdin().read_line(&mut line)?;
-    while let Some(c) = line.chars().next_back() {
-        if c == '\n' || c == '\r' {
-            line.pop();
         } else {
             break;
         }
     }
 
-    Ok(line)
+    println!();
+    Ok(())
+}
+
+/// read_line reads a single line of input from the user and returns it as an owned string WITHOUT
+/// newline.
+///
+/// Ok(None) corresponds to an EOF that was correctly read.
+fn read_line(prompt: &str) -> io::Result<Option<String>> {
+    let mut line = String::new();
+    io::stdout().write(prompt.as_bytes())?;
+    io::stdout().flush()?;
+
+    let bytes_read = io::stdin().read_line(&mut line)?;
+    if bytes_read == 0 {
+        Ok(None)
+    } else {
+        while let Some(c) = line.chars().next_back() {
+            if c == '\n' || c == '\r' {
+                line.pop();
+            } else {
+                break;
+            }
+        }
+
+        Ok(Some(line))
+    }
 }
 
 #[cfg(test)]
