@@ -3,7 +3,9 @@ use std::fmt::{Display, Formatter};
 use std::io;
 use std::io::Write;
 use std::str::FromStr;
-use std::rc::Rc;
+
+// TODO: decomp all of these components into their own homes; SExpr into their place, EvalContext
+// into its own place (maybe along with the eval function on the SExpr struct), etc.
 
 pub struct LispError {
     message: String,
@@ -122,6 +124,7 @@ impl SExpr {
 
     /// parse transforms lexed input into a structured S expression.
     pub fn parse<'a, I: Iterator<Item = &'a str>>(mut iter: I) -> Option<Self> {
+        // TODO: translate this and the other vestigial uses of Option over to LispResult
         let head = iter.next()?;
         let head_chars: Vec<char> = head.chars().collect();
 
