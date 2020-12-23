@@ -3,9 +3,9 @@ use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 
 use crate::context::EvalContext;
-use crate::error::LispResult;
+use crate::error::{LispError, LispResult};
 use crate::lisp_error;
-use crate::builtins::eval_builtin;
+use crate::builtins::{is_builtin, eval_builtin};
 
 #[derive(Clone)]
 pub enum SExpr {
@@ -100,32 +100,7 @@ impl SExpr {
     }
 
     pub fn eval(self, ctx: &mut EvalContext) -> LispResult<Self> {
-        Ok(match self {
-            SExpr::Symbol(name) => ctx.get(name.as_str())?.clone(),
-            SExpr::List(exprs) => {
-                if exprs.len() == 0 {
-                    return Ok(SExpr::List(exprs));
-                }
-
-                let head = exprs[0].as_ref();
-                if let SExpr::Symbol(s) = head {
-                    let args: Vec<&SExpr> = exprs[1..].iter().map(|b| b.as_ref()).collect();
-                    if let Ok(results) = eval_builtin(s, ctx, &args) {
-                        return Ok(results);
-                    }
-
-                    if let Ok(SExpr::List(_)) = ctx.get(s) {
-                        todo!("run builin funcall on args incl symbol name")
-                    }
-
-                    lisp_error!("failed to evaluate '{}', unknown builtin or function name", s);
-                }
-
-                lisp_error!("failed to evaluate list with head '{}'", head);
-            }
-            // for bool, number, and string, we map the value to itself
-            x => x,
-        })
+        eval_builtin("eval", ctx, vec![self])
     }
 }
 
