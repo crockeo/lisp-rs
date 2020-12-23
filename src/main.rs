@@ -121,12 +121,7 @@ impl SExpr {
     }
 
     /// parse transforms lexed input into a structured S expression.
-    pub fn parse<'a, I: IntoIterator<Item = &'a str>>(ss: I) -> Option<Self> {
-        // TODO: get rid of this layer of indirection?
-        SExpr::parse_impl(ss.into_iter())
-    }
-
-    fn parse_impl<'a, I: Iterator<Item = &'a str>>(mut iter: I) -> Option<Self> {
+    pub fn parse<'a, I: Iterator<Item = &'a str>>(mut iter: I) -> Option<Self> {
         let head = iter.next()?;
         let head_chars: Vec<char> = head.chars().collect();
 
@@ -156,7 +151,7 @@ impl SExpr {
 
             let mut raw_children_iter = raw_children.into_iter();
             let mut children = Vec::new();
-            while let Some(child) = SExpr::parse_impl(&mut raw_children_iter) {
+            while let Some(child) = SExpr::parse(&mut raw_children_iter) {
                 children.push(Box::new(child));
             }
             SExpr::List(children)
@@ -180,7 +175,14 @@ impl SExpr {
                         return Ok(results);
                     }
 
-                    todo!("calling custom functions '{}'", s);
+                    if let Ok(SExpr::List(_)) = ctx.get(s) {
+                        todo!("run builin funcall on args incl symbol name")
+                    }
+
+                    return Err(LispError::new(format!(
+                        "failed to evaluate '{}', unknown builtin or function name",
+                        s,
+                    )));
                 }
 
                 return Err(LispError::new(format!(
@@ -219,7 +221,7 @@ impl FromStr for SExpr {
     type Err = &'static str;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        SExpr::parse(SExpr::lex(s)).ok_or("failed to parse SExpr")
+        SExpr::parse(SExpr::lex(s).into_iter()).ok_or("failed to parse SExpr")
     }
 }
 
@@ -242,6 +244,18 @@ pub fn eval_builtin<'a, I: IntoIterator<Item = &'a SExpr>>(name: &str, args: I) 
 fn main() -> io::Result<()> {
     let mut eval_context = EvalContext::new();
     loop {
+        let line = read_line("> ")?;
+        let tokens = SExpr::lex(line.as_str());
+        let mut tokens_iter = tokens.into_iter();
+        while let Some(expr) = SExpr::parse(&mut tokens_iter) {
+            match expr.eval(&mut eval_context) {
+                Err(e) => {
+                    println!("encountered error: {}", e.message);
+                },
+                Ok(result) => println!("{}", result),
+            }
+        }
+
         let result = read_line("> ")?
             .as_str()
             .parse::<SExpr>()
