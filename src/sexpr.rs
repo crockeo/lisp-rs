@@ -3,9 +3,8 @@ use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 
 use crate::context::EvalContext;
-use crate::error::{LispError, LispResult};
-use crate::lisp_error;
-use crate::builtins::{is_builtin, eval_builtin};
+use crate::error::LispResult;
+use crate::builtins::eval_builtin;
 
 #[derive(Clone)]
 pub enum SExpr {

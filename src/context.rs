@@ -1,42 +1,49 @@
+use std::collections::HashMap;
+use std::mem;
+
 use crate::error::LispResult;
 use crate::lisp_error;
 use crate::sexpr::SExpr;
 
 pub struct EvalContext {
-    values: Vec<(String, SExpr)>,
+    scopes: Vec<HashMap<String, SExpr>>,
 }
 
 impl EvalContext {
-    pub fn new() -> EvalContext {
-        EvalContext { values: Vec::new() }
+    pub fn new() -> Self {
+        Self { scopes: Vec::new() }
     }
 
-    /// get retrieves a value from the EvalContext if it exists, otherwise None.
-    pub fn get(&mut self, target_name: &str) -> LispResult<&SExpr> {
-        for (name, value) in self.values.iter().rev() {
-            if name.as_str() == target_name {
-                return Ok(value);
+    pub fn get<'a>(&'a self, target_name: &str) -> LispResult<&'a SExpr> {
+        for scope in self.scopes.iter().rev() {
+            if let Some(sexpr) = scope.get(target_name) {
+                return Ok(sexpr);
             }
         }
 
-        lisp_error!("failed to get value with name '{}'", target_name);
+        lisp_error!("failed to retrieve symbol '{}'", target_name);
     }
 
-    /// set sets the value of the most locally-scoped
-    pub fn set(&mut self, target_name: &str, new_value: SExpr) -> LispResult<()> {
-        for (name, value) in self.values.iter_mut().rev() {
-            if name.as_str() == target_name {
-                *value = new_value;
-                return Ok(());
+    pub fn set<'a>(&'a mut self, target_name: &str, new_value: SExpr) -> LispResult<&'a SExpr> {
+        for scope in self.scopes.iter_mut().rev() {
+            if let Some(sexpr) = scope.get_mut(target_name) {
+                let _ = mem::replace(sexpr, new_value);
+                return Ok(sexpr);
             }
         }
 
-        lisp_error!("failed to set value with name '{}'", target_name);
+        lisp_error!("failed to set symbol '{}'", target_name);
     }
 
-    /// set_new creates a new binding the the name
-    pub fn set_new(&mut self, name: &str, value: SExpr) {
-        self.values.push((name.to_string(), value));
+    pub fn push(&mut self, new_values: HashMap<String, SExpr>) -> LispResult<()> {
+        self.scopes.push(new_values);
+        Ok(())
+    }
+
+    pub fn pop(&mut self) -> LispResult<()> {
+        if let None = self.scopes.pop() {
+            lisp_error!("attempted to pop top-level EvalContext");
+        }
+        Ok(())
     }
 }
-

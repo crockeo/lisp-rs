@@ -7,9 +7,14 @@ use crate::sexpr::SExpr;
 
 pub type LispBuiltin = dyn Fn(&mut EvalContext, Vec<SExpr>) -> LispResult<SExpr> + Sync;
 
-fn add_impl(_: &mut EvalContext, args: Vec<SExpr>) -> LispResult<SExpr> {
+fn add_impl(ctx: &mut EvalContext, args: Vec<SExpr>) -> LispResult<SExpr> {
     let mut register = 0.0;
     for arg in args.into_iter() {
+        let mut arg = &arg;
+        if let SExpr::Symbol(s) = arg {
+            arg = ctx.get(s)?;
+        }
+
         if let SExpr::Num(f) = arg {
             register += f;
         } else {
@@ -17,6 +22,26 @@ fn add_impl(_: &mut EvalContext, args: Vec<SExpr>) -> LispResult<SExpr> {
         }
     }
     Ok(SExpr::Num(register))
+}
+
+fn def_impl(ctx: &mut EvalContext, args: Vec<SExpr>) -> LispResult<SExpr> {
+    if args.len() != 2 {
+        lisp_error!("def must be used with exactly 2 args, not {}", args.len());
+    }
+
+    let mut iter = args.into_iter();
+    let symbol = iter.next().unwrap();
+    let value = iter.next().unwrap();
+
+    // TODO: evaluate value first
+    if let SExpr::Symbol(s) = symbol {
+        let mut new_values = HashMap::new();
+        new_values.insert(s, value.clone()); // TODO: figure out if i can avoid cloning here
+        ctx.push(new_values)?;
+        Ok(value)
+    } else {
+        lisp_error!("cannot define place with non-symbol name");
+    }
 }
 
 fn eval_impl(ctx: &mut EvalContext, args: Vec<SExpr>) -> LispResult<SExpr> {
@@ -51,7 +76,7 @@ fn eval_impl(ctx: &mut EvalContext, args: Vec<SExpr>) -> LispResult<SExpr> {
     ret
 }
 
-fn let_impl(ctx: &mut EvalContext, args: Vec<SExpr>) -> LispResult<SExpr> {
+fn let_impl(_ctx: &mut EvalContext, _args: Vec<SExpr>) -> LispResult<SExpr> {
     todo!("implement let")
 }
 
@@ -59,6 +84,7 @@ lazy_static! {
     static ref BUILTINS: HashMap<&'static str, Box<LispBuiltin>> = {
         let mut m: HashMap<&'static str, Box<LispBuiltin>> = HashMap::new();
         m.insert("+", Box::new(add_impl));
+        m.insert("def", Box::new(def_impl));
         m.insert("eval", Box::new(eval_impl));
         m.insert("let", Box::new(let_impl));
         m
