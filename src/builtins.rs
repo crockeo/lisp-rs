@@ -63,7 +63,10 @@ fn eval_impl(ctx: &mut EvalContext, args: Vec<SExpr>) -> LispResult<SExpr> {
                             todo!("run builtin funcall on args incl symbol name");
                         }
 
-                        lisp_error!("failed to evaluate '{}', unknown builtin or function name", s);
+                        lisp_error!(
+                            "failed to evaluate '{}', unknown builtin or function name",
+                            s
+                        );
                     }
 
                     lisp_error!("failed to evaluate list with head '{}'", head);
@@ -76,8 +79,44 @@ fn eval_impl(ctx: &mut EvalContext, args: Vec<SExpr>) -> LispResult<SExpr> {
     ret
 }
 
-fn let_impl(_ctx: &mut EvalContext, _args: Vec<SExpr>) -> LispResult<SExpr> {
-    todo!("implement let")
+fn let_impl(ctx: &mut EvalContext, args: Vec<SExpr>) -> LispResult<SExpr> {
+    let mut iter = args.into_iter();
+    let bindings = iter.next();
+    if let Some(SExpr::List(bindings)) = bindings {
+        let mut new_values = HashMap::new();
+        for binding in bindings.into_iter() {
+            if let SExpr::List(binding) = binding.as_ref() {
+                if let &[SExpr::Symbol(s), value] = binding
+                    .into_iter()
+                    .map(|b| b.as_ref())
+                    .collect::<Vec<&SExpr>>()
+                    .as_slice()
+                {
+                    // TODO: avoid cloning?
+                    new_values.insert(s.clone(), value.clone());
+                } else {
+                    lisp_error!("invalid let binding");
+                }
+            } else {
+                lisp_error!("let binding must be list");
+            }
+        }
+        ctx.push(new_values)?;
+    } else {
+        lisp_error!("let must contain bindings list");
+    }
+
+    let mut result = None;
+    for body in iter {
+        result = Some(eval_impl(ctx, vec![body]));
+    }
+
+    ctx.pop()?;
+
+    match result {
+        None => Ok(SExpr::List(vec![])),
+        Some(x) => x,
+    }
 }
 
 lazy_static! {
