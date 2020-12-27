@@ -131,3 +131,58 @@ impl FromStr for SExpr {
         SExpr::parse(SExpr::lex(s).into_iter()).ok_or("failed to parse SExpr")
     }
 }
+
+#[cfg(test)]
+mod test_lex {
+    use super::*;
+
+    fn test_lex(ss: Vec<&str>) {
+        for s in ss.into_iter() {
+            let tokens = SExpr::lex(s);
+            assert_eq!(tokens, vec![s]);
+        }
+    }
+
+    #[test]
+    fn test_sexpr_lex_bool() {
+        test_lex(vec!["true", "false"]);
+    }
+
+    #[test]
+    fn test_sexpr_lex_number() {
+        test_lex(vec!["1", "1.23"]);
+    }
+
+    #[test]
+    fn test_sexpr_lex_str() {
+        test_lex(vec!["\"hello world\"", "\"hello \\\" world\""]);
+    }
+
+    #[test]
+    fn test_sexpr_lex_symbol() {
+        test_lex(vec!["symbol"]);
+    }
+
+    #[test]
+    fn test_sexpr_lex_complex() {
+        let s = "(thing 2 (thing 1 1.23 'c' \"hello\\\" world\"))";
+        let tokens = SExpr::lex(s);
+
+        assert_eq!(
+            tokens,
+            vec![
+                "(",
+                "thing",
+                "2",
+                "(",
+                "thing",
+                "1",
+                "1.23",
+                "'c'",
+                "\"hello\\\" world\"",
+                ")",
+                ")"
+            ]
+        );
+    }
+}
