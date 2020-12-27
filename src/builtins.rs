@@ -33,10 +33,9 @@ fn def_impl(ctx: &mut EvalContext, args: Vec<SExpr>) -> LispResult<SExpr> {
     let symbol = iter.next().unwrap();
     let value = iter.next().unwrap();
 
-    // TODO: evaluate value first
     if let SExpr::Symbol(s) = symbol {
         let mut new_values = HashMap::new();
-        new_values.insert(s, value.clone()); // TODO: figure out if i can avoid cloning here
+        new_values.insert(s, eval_impl(ctx, vec![value.clone()])?);
         ctx.push(new_values)?;
         Ok(value)
     } else {
@@ -95,7 +94,7 @@ fn let_impl(ctx: &mut EvalContext, args: Vec<SExpr>) -> LispResult<SExpr> {
                 let value = *iter.next().unwrap();
 
                 if let SExpr::Symbol(s) = name {
-                    new_values.insert(s, value);
+                    new_values.insert(s, eval_impl(ctx, vec![value])?);
                 } else {
                     lisp_error!("let binding must contain ");
                 }
