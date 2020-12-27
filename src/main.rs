@@ -18,9 +18,6 @@ use rustyline::error::ReadlineError;
 use crate::context::EvalContext;
 use crate::sexpr::SExpr;
 
-// TODO: decomp all of these components into their own homes; SExpr into their place, EvalContext
-// into its own place (maybe along with the eval function on the SExpr struct), etc.
-
 fn main() -> io::Result<()> {
     let mut rl = Editor::<()>::new();
     let mut eval_context = EvalContext::new();
