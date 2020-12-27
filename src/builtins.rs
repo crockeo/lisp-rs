@@ -83,19 +83,21 @@ fn let_impl(ctx: &mut EvalContext, args: Vec<SExpr>) -> LispResult<SExpr> {
     let mut iter = args.into_iter();
     let bindings = iter.next();
     if let Some(SExpr::List(bindings)) = bindings {
-        let mut new_values = HashMap::new();
+        let mut new_values: HashMap<String, SExpr> = HashMap::new();
         for binding in bindings.into_iter() {
-            if let SExpr::List(binding) = binding.as_ref() {
-                if let &[SExpr::Symbol(s), value] = binding
-                    .into_iter()
-                    .map(|b| b.as_ref())
-                    .collect::<Vec<&SExpr>>()
-                    .as_slice()
-                {
-                    // TODO: avoid cloning?
-                    new_values.insert(s.clone(), value.clone());
-                } else {
+            if let SExpr::List(binding) = *binding {
+                if binding.len() != 2 {
                     lisp_error!("invalid let binding");
+                }
+
+                let mut iter = binding.into_iter();
+                let name = *iter.next().unwrap();
+                let value = *iter.next().unwrap();
+
+                if let SExpr::Symbol(s) = name {
+                    new_values.insert(s, value);
+                } else {
+                    lisp_error!("let binding must contain ");
                 }
             } else {
                 lisp_error!("let binding must be list");
